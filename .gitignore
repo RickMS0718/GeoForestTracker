@@ -1,0 +1,102 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+#  KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# ==========================================================
+# Node.js
+# ==========================================================
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+
+# ==========================================================
+# Cordova
+# ==========================================================
+platforms/
+plugins/
+hooks/
+merges/
+res/native/
+
+# Archivos generados automáticamente por Cordova
+www/cordova.js
+www/cordova_plugins.js
+
+# Carpeta de recursos Android compilados
+.gradle/
+.idea/
+build/
+app/build/
+
+# ==========================================================
+# Android-specific
+# ==========================================================
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.jar
+*.keystore
+*.jks
+*.so
+
+# Android Studio
+*.iml
+local.properties
+captures/
+
+# ==========================================================
+# iOS (por si lo usas en el futuro)
+# ==========================================================
+*.xcworkspace
+*.xcuserstate
+*.xcodeproj/*
+Pods/
+DerivedData/
+build/
+
+# ==========================================================
+# Logs & OS files
+# ==========================================================
+*.log
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ==========================================================
+# Visual Studio Code
+# ==========================================================
+.vscode/
+
+# ==========================================================
+# Backup files
+# ==========================================================
+*.bak
+*.old
+*.tmp
+*.temp
+
+# ==========================================================
+# GIS / Exported data (si no quieres subir los resultados)
+# ==========================================================
+*.geojson
+*.csv
+export/
