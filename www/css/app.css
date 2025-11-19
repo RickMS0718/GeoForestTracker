@@ -1,0 +1,97 @@
+
+body {
+	background: #C8C8C8; /* Background grey in hexadecimal RGB*/
+	color: black; /* Text in black */
+	font: 10pt Helvetica, Arial, sans-serif;
+}
+
+* {
+	padding: 0; /* Important on mobile devices */
+	margin: 0;
+}
+
+html, body {
+	height: 100vh; /* 100 = 100%, vh = viewport height */
+	width: 100vw;
+}
+
+#coordinates {
+	position: fixed;
+	top: 0px; /* Unit of pixels */
+	height: 30px;
+	width: 100%;
+	line-height: 30px;
+	text-align: center;
+	background: rgba(0, 0, 0, 0.1); /* RGB and transparency */
+	z-index: 1;
+}
+
+#menu {
+	width: 60px;
+	height: 360px; /* Modify depending on your phone */
+	background: rgba(0, 0, 0, 0.2);
+	position: fixed;
+	
+	top: 50%;
+	transform: translateY(-50%);
+	-webkit-transform: translateY(-50%);
+	-ms-transform: translateY(-50%);
+	right: 10px;
+	
+	font-size: 40px;
+	text-align: center;
+	line-height: 56px;
+	padding-top: 10px;
+	
+	border-radius: 20px;
+	
+	z-index: 1;
+}
+
+#toast{
+	height: 50px;
+	width: 80%;
+	line-height: 50px;
+	text-align: center;
+	border-radius: 10px;
+	position: fixed;
+	top: 20%;
+	left: 50%;
+	transform: translate(-50%, -80%);
+	-webkit-transform: translate(-50%, -80%);
+	-ms-transform: translate(-50%, -80%);
+	
+	background: #D3D3D3;
+}
+
+#map {
+	height: 100%;
+	width: 100%;
+	z-index: 0;
+}
+
+#point-id {
+	position: fixed;
+	bottom: 20px;
+	height: 40px;
+	width: 100%;
+	background: transparent;
+	display: flex;
+	align-items: center;
+	text-align: center;
+	z-index: 1;
+}
+
+#point-id-text {
+	height: 30px;
+	line-height: 30px;
+	vertical-align: middle;
+	border-radius: 10px;
+	width: 90%;
+	padding-left: 10px;
+	/* outline: none;*/
+}
+
+
+
+
