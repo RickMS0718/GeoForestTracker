@@ -1,11 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="edu.upv.g2" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>G2</name>
+    <name>GeoForest</name>
     <description>A Sample Apache Cordova App with Maps and Geolocation</description>
     <author email="amarques@cgf.upv.es" href="http://personales.upv.es/amarques">
         UPV Geomatics
     </author>
     <content src="index.html" />
+    <icon src="www/img/logo3.png" />
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
 </widget>

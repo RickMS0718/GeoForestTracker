@@ -56,7 +56,7 @@ var osmAttribution = "&copy <a href=\"https://openstreetmap.org/copyright\">Open
 
 var osm = L.tileLayer(osmURL, {attribution: osmAttribution});
 
-map.setView([0.0, 0.0], 1);
+map.setView([40, -3.5], 6); // Centered on Spain
 
 map.addLayer(osm);
 
@@ -87,9 +87,23 @@ var pnoa = L.tileLayer.wms(
 	}
 );
 
+// SIOSE - Sistema de Información sobre Ocupación del Suelo de España
+var siose = L.tileLayer.wms(
+	"https://servicios.idee.es/wms-inspire/ocupacion-suelo",
+	{
+		layers: "LC.LandCoverSurfaces",
+		format: "image/png",
+		transparent: false,
+		version: "1.3.0",
+		crs: L.CRS.EPSG4326,
+		attribution: "&copy; IGN - SIOSE"
+	}
+);
+
 var baseMaps = {
 	"osm": osm,
-	"pnoa": pnoa
+	"pnoa": pnoa,
+	"siose": siose
 }
 
 
@@ -106,17 +120,29 @@ function onDeviceReady() {
 	
 	document.getElementsByClassName("fa-solid fa-location-dot")[0].addEventListener("click", toggleLocation);
 	document.getElementsByClassName("fa-solid fa-square-plus")[0].addEventListener("click", storePoint);
-	document.getElementsByClassName("fa-solid fa-square-minus")[0].addEventListener("click", clearMemory);
-	document.getElementsByClassName("fa-solid fa-layer-group")[0].addEventListener("click", switchBaseMap);
+	document.getElementsByClassName("fa-solid fa-square-minus")[0].addEventListener("click", openDeleteModal);
+	document.getElementsByClassName("fa-solid fa-layer-group")[0].addEventListener("click", toggleBasemapSelect);
 
-	// Botón nuevo: abrir formulario de atributos para el último punto
-	document.getElementsByClassName("fa-solid fa-file-pen")[0].addEventListener("click", openAttributesForm);
+	// Basemap dropdown change
+	var basemapSelect = document.getElementById("basemap-select");
+	basemapSelect.addEventListener("change", function(e){
+		var choice = e.target.value;
+		switchBaseMap(choice);
+	});
+
+	// Botón: visualizar todos los puntos guardados
+	document.getElementsByClassName("fa-solid fa-map-pin")[0].addEventListener("click", showAllPoints);
 
 	document.getElementsByClassName("fa-solid fa-floppy-disk")[0].addEventListener("click", saveGeoJSON);
 
 	// Form buttons
 	document.getElementById("attr-save").addEventListener("click", saveAttributesForm);
 	document.getElementById("attr-cancel").addEventListener("click", closeAttributesForm);
+	
+	// Delete modal buttons
+	document.getElementById("delete-selected-btn").addEventListener("click", deleteSelectedPoints);
+	document.getElementById("delete-all-btn").addEventListener("click", deleteAllPoints);
+	document.getElementById("cancel-delete-btn").addEventListener("click", closeDeleteModal);
 
 }
 
@@ -371,11 +397,18 @@ function storePoint() {
 	
 	console.log(JSON.stringify(pointArray, null, 4));
 	
-	// Leaflet point
+	// Leaflet point con icono de árbol
 	
-	var leafletPointID = L.circle( // Point entity in Leaflet format
+	var treeIcon = L.divIcon({
+		html: '<i class="fa-solid fa-tree" style="color: green; font-size: 24px;"></i>',
+		className: 'tree-marker',
+		iconSize: [24, 24],
+		iconAnchor: [12, 24]
+	});
+	
+	var leafletPointID = L.marker(
 	    point.geometry.coordinates.toReversed(),
-		leafletPointOptions
+		{icon: treeIcon}
 	);
 	
 	var popup = "";
@@ -392,6 +425,98 @@ function storePoint() {
 
 	// Abrir el formulario de atributos automáticamente para el punto recién guardado
 	openAttributesForm();
+}
+
+function openDeleteModal() {
+	if (pointArray.length === 0) {
+		showToast("No hay puntos guardados.");
+		return;
+	}
+	
+	// Generar lista de puntos
+	var pointsList = document.getElementById("points-list");
+	pointsList.innerHTML = "";
+	
+	for (var i = 0; i < pointArray.length; i++) {
+		var p = pointArray[i];
+		var pointItem = document.createElement("div");
+		pointItem.className = "point-item";
+		
+		var checkbox = document.createElement("input");
+		checkbox.type = "checkbox";
+		checkbox.value = i;
+		checkbox.id = "point-checkbox-" + i;
+		
+		var label = document.createElement("label");
+		label.htmlFor = "point-checkbox-" + i;
+		label.style.cursor = "pointer";
+		label.style.flex = "1";
+		
+		var pointInfo = "ID: " + p.id;
+		if (p.properties.especie) {
+			pointInfo += " - " + p.properties.especie;
+		}
+		label.textContent = pointInfo;
+		
+		pointItem.appendChild(checkbox);
+		pointItem.appendChild(label);
+		pointsList.appendChild(pointItem);
+	}
+	
+	document.getElementById("delete-points-modal").style.display = "flex";
+}
+
+function closeDeleteModal() {
+	document.getElementById("delete-points-modal").style.display = "none";
+}
+
+function deleteSelectedPoints() {
+	var checkboxes = document.querySelectorAll("#points-list input[type='checkbox']:checked");
+	
+	if (checkboxes.length === 0) {
+		showToast("Selecciona al menos un punto para eliminar.");
+		return;
+	}
+	
+	var confirm = window.confirm("¿Eliminar " + checkboxes.length + " punto(s) seleccionado(s)?");
+	if (!confirm) return;
+	
+	// Obtener índices en orden descendente para eliminar correctamente
+	var indices = [];
+	for (var i = 0; i < checkboxes.length; i++) {
+		indices.push(parseInt(checkboxes[i].value));
+	}
+	indices.sort(function(a, b) { return b - a; });
+	
+	// Eliminar puntos del array y del mapa
+	for (var i = 0; i < indices.length; i++) {
+		var idx = indices[i];
+		pointArray.splice(idx, 1);
+		if (leafletPointArray[idx]) {
+			map.removeLayer(leafletPointArray[idx]);
+			leafletPointArray.splice(idx, 1);
+		}
+	}
+	
+	showToast(checkboxes.length + " punto(s) eliminado(s).");
+	closeDeleteModal();
+}
+
+function deleteAllPoints() {
+	var confirm = window.confirm("¿Eliminar TODOS los puntos guardados (" + pointArray.length + ")?");
+	if (!confirm) return;
+	
+	// Limpiar array de puntos
+	pointArray = [];
+	
+	// Limpiar marcadores del mapa
+	for (var i = 0; i < leafletPointArray.length; i++) {
+		map.removeLayer(leafletPointArray[i]);
+	}
+	leafletPointArray = [];
+	
+	showToast("Todos los puntos han sido eliminados.");
+	closeDeleteModal();
 }
 
 function clearMemory() {
@@ -437,18 +562,82 @@ function clearMemory() {
 }
 
 
-function switchBaseMap() {
-	if (currentLayer == "osm") {
-		map.removeLayer(baseMaps["osm"]);
-		map.addLayer(baseMaps["pnoa"]);
-		currentLayer = "pnoa";
-	} else if (currentLayer == "pnoa") {
-		map.removeLayer(baseMaps["pnoa"]);
-		map.addLayer(baseMaps["osm"]);
-		currentLayer = "osm";
+function switchBaseMap(choice) {
+	if (!choice) return;
+	choice = choice.trim().toLowerCase();
+	if (!baseMaps[choice]) {
+		showToast("Capa no válida: " + choice);
+		return;
+	}
+	if (baseMaps[currentLayer] && map.hasLayer(baseMaps[currentLayer])) {
+		map.removeLayer(baseMaps[currentLayer]);
+	}
+	map.addLayer(baseMaps[choice]);
+	currentLayer = choice;
+	
+	// Mostrar/ocultar leyenda SIOSE
+	var legend = document.getElementById("siose-legend");
+	if (legend) {
+		legend.style.display = (choice === "siose") ? "block" : "none";
 	}
 }
 
+function toggleBasemapSelect() {
+	var select = document.getElementById("basemap-select");
+	if (!select) return;
+	// Toggle visibility
+	select.style.display = (select.style.display === "none" || select.style.display === "") ? "inline-block" : "none";
+	// Sync current selection
+	select.value = currentLayer;
+}
+
+function showAllPoints() {
+	if (pointArray.length === 0) {
+		showToast("No hay puntos guardados.");
+		return;
+	}
+
+	// Limpiar marcadores existentes del mapa
+	for (var i = 0; i < leafletPointArray.length; i++) {
+		map.removeLayer(leafletPointArray[i]);
+	}
+	leafletPointArray = [];
+
+	// Crear icono de árbol
+	var treeIcon = L.divIcon({
+		html: '<i class="fa-solid fa-tree" style="color: green; font-size: 24px;"></i>',
+		className: 'tree-marker',
+		iconSize: [24, 24],
+		iconAnchor: [12, 24]
+	});
+
+	// Dibujar todos los puntos guardados
+	for (var count = 0; count < pointArray.length; count++) {
+		var p = pointArray[count];
+		
+		var leafletPointID = L.marker(
+			p.geometry.coordinates.toReversed(),
+			{icon: treeIcon}
+		);
+		
+		var popup = "";
+		popup += "ID = " + p.id + "<br>";
+		popup += "Longitude = " + p.geometry.coordinates[0].toFixed(8) + "<br>";
+		popup += "Latitude = " + p.geometry.coordinates[1].toFixed(8) + "<br>";
+		if (p.properties.especie) popup += "Especie = " + p.properties.especie + "<br>";
+		if (p.properties.altura !== null && p.properties.altura !== undefined) popup += "Altura (m) = " + p.properties.altura + "<br>";
+		if (p.properties.dap !== null && p.properties.dap !== undefined) popup += "DAP (m) = " + p.properties.dap + "<br>";
+		if (p.properties.estado_fito) popup += "Estado fito = " + p.properties.estado_fito + "<br>";
+		if (p.properties.cobertura) popup += "Cobertura = " + p.properties.cobertura + "<br>";
+		if (p.properties.observaciones) popup += "Observaciones = " + p.properties.observaciones + "<br>";
+		
+		leafletPointID.bindPopup(popup);
+		leafletPointID.addTo(map);
+		leafletPointArray.push(leafletPointID);
+	}
+
+	showToast("Mostrando " + pointArray.length + " punto(s).");
+}
 
 
 function saveGeoJSON() {
@@ -503,6 +692,7 @@ function openAttributesForm() {
 	// Rellenar formulario con valores existentes si los hay
 	document.getElementById("attr-especie").value = p.properties.especie || "";
 	document.getElementById("attr-altura").value = (p.properties.altura !== undefined && p.properties.altura !== null) ? p.properties.altura : "";
+	document.getElementById("attr-dap").value = (p.properties.dap !== undefined && p.properties.dap !== null) ? p.properties.dap : "";
 	document.getElementById("attr-estado").value = p.properties.estado_fito || "";
 	document.getElementById("attr-cobertura").value = p.properties.cobertura || "";
 	document.getElementById("attr-observaciones").value = p.properties.observaciones || "";
@@ -526,13 +716,15 @@ function saveAttributesForm() {
 	// Leer campos
 	var especie = document.getElementById("attr-especie").value.trim();
 	var altura = document.getElementById("attr-altura").value;
-	var estado = document.getElementById("attr-estado").value.trim();
+	var dap = document.getElementById("attr-dap").value;
+	var estado = document.getElementById("attr-estado").value; // select value
 	var cobertura = document.getElementById("attr-cobertura").value.trim();
 	var observaciones = document.getElementById("attr-observaciones").value.trim();
 
 	// Asignar a properties del punto
 	p.properties.especie = especie;
 	p.properties.altura = (altura === "") ? null : parseFloat(altura);
+	p.properties.dap = (dap === "") ? null : parseFloat(dap);
 	p.properties.estado_fito = estado;
 	p.properties.cobertura = cobertura;
 	p.properties.observaciones = observaciones;
@@ -545,6 +737,7 @@ function saveAttributesForm() {
 		popup += "Latitude = " + p.geometry.coordinates[1].toFixed(8) + "<br>";
 		if (p.properties.especie) popup += "Especie = " + p.properties.especie + "<br>";
 		if (p.properties.altura !== null && p.properties.altura !== undefined) popup += "Altura (m) = " + p.properties.altura + "<br>";
+		if (p.properties.dap !== null && p.properties.dap !== undefined) popup += "DAP (m) = " + p.properties.dap + "<br>";
 		if (p.properties.estado_fito) popup += "Estado fito = " + p.properties.estado_fito + "<br>";
 		if (p.properties.cobertura) popup += "Cobertura = " + p.properties.cobertura + "<br>";
 		if (p.properties.observaciones) popup += "Observaciones = " + p.properties.observaciones + "<br>";
